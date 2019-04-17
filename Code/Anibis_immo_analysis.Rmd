@@ -1,0 +1,489 @@
+---
+title: "Housing Prices in Switzerland"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    keep_md: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(cache.lazy=FALSE)
+```
+
+# Load
+
+## Libraries
+
+```{r,message=FALSE,warning=FALSE}
+library(tidyverse)
+library(lme4)
+library(skimr)
+library(scales)
+library(caret)
+library(doSNOW)
+theme_set(theme_light())
+```
+
+## Data
+
+Load webscrapped data from Anibis.
+
+```{r,message=FALSE}
+d <- read_tsv("../Data/processed/anibis_price_06-04-2019.txt")
+```
+
+Skim the data.
+
+```{r}
+skim(d)
+```
+
+Let's check the number of listing per category of object.
+
+```{r}
+count(d,object,sort=TRUE)
+```
+
+We will later exclude objects that are not appartments.
+
+```{r}
+count(d,location,sort=TRUE)
+```
+
+As expected, listings are more numerous for larger cities.
+
+# Cleaning
+
+Let's create new columns indicating whether the listing is for shared housing, if a person is asking for housing, if the house has a nice view or if the house is new.
+
+```{r}
+d <- mutate(d,
+            coloc = grepl('coloc',title,ignore.case = TRUE),
+            ask = grepl('cherche',title,ignore.case = TRUE),
+            view = grepl("^vue|\\svue|,vue|\\/vue|blick",title,ignore.case = TRUE),
+            new = grepl("neuf|modern|rénové|renoviert",title,ignore.case = TRUE)
+            )
+```
+
+Variables indicating whether the appartment has a nice view or is modern/new do not significantly improve our models (not shown) but we will keep the code as legacy.
+
+Set the same name for the diverse cities.
+
+```{r}
+d <- mutate(d, location=  case_when(
+  location=="zürich" ~ "zurich",
+  location=="berne" ~ "bern",
+  location=="bâle" ~ "basel",
+  location=="carouge ge" ~ "carouge",
+  location=="renens vd" ~ "renens",
+  TRUE ~ location
+))
+```
+
+Many cities do not have the right cantons. We will set the canton corresponding to the majority of the location.
+
+```{r}
+canton_clean <- select(d,location,canton) %>% add_count(location,canton) %>% distinct() %>% add_count(location) %>% arrange(location) %>% group_by(location) %>% mutate(canton=canton[which.max(n)]) %>% ungroup() %>% select(location,canton) %>% distinct()
+```
+
+Set the right canton for the different cities (based on majority voting).
+
+```{r}
+d <- select(d,-canton) %>% left_join(canton_clean)
+```
+
+Only keep appartments, remove colocations and people looking for an appartment
+
+```{r}
+d <- filter(d,object=="Appartement",!coloc,!ask)
+```
+
+Let's check the distribution of prices in the dataset.
+
+```{r,message=FALSE,warning=FALSE}
+ggplot(d,aes(price)) + geom_histogram() + xlab("Price") + scale_x_continuous(labels = dollar_format(suffix =" CHF", prefix = "",big.mark = "'")) + xlab("Price")
+```
+
+Some appartments have unbelivable rents. Let's remove them. 
+
+We will also remove the few rents that are believable but extremly high in order to achieve a nicer distribution.
+
+```{r}
+d <- filter(d,price >400, price<6500)
+ggplot(d,aes(price)) + geom_histogram(binwidth = 100) + scale_x_continuous(labels = dollar_format(suffix =" CHF", prefix = "",big.mark = "'")) + xlab("Price")
+```
+
+## Surface
+
+Let's now look at surface.
+
+```{r,message=FALSE,warning=FALSE}
+ggplot(d,aes(surface)) + geom_histogram(binwidth = 10) + scale_x_continuous(labels = dollar_format(suffix =" m2", prefix = "",big.mark = "'")) + xlab("Surface")
+```
+
+Let's remove very large surfaces as there are very few data points. 
+
+```{r}
+d <- filter(d,surface<250 | is.na(surface))
+```
+
+```{r,warning=FALSE}
+ggplot(d,aes(surface)) + geom_histogram(binwidth = 10) + scale_x_continuous(labels = dollar_format(suffix =" m2", prefix = "",big.mark = "'")) + xlab("Surface")
+```
+
+## Rooms
+
+```{r,warning=FALSE,message=FALSE}
+ggplot(d,aes(rooms)) + geom_histogram() + xlab("Number of rooms")
+```
+
+Let's remove appartments with more than 8 rooms
+
+```{r}
+d <- filter(d,rooms<8 | is.na(rooms))
+```
+
+```{r,warning=FALSE,message=FALSE}
+ggplot(d,aes(rooms)) + geom_histogram(boundary = 0.5) + xlab("Number of rooms")
+```
+
+## Missing data
+
+Let's also remove listings where both surface and number of rooms are missing.
+
+```{r}
+d <- filter(d,
+            !(is.na(surface) & is.na(rooms)) 
+            )
+```
+
+## Remove duplicates
+
+```{r}
+d <- distinct(d)
+```
+
+# Visualisation
+
+## Surface vs Price per canton
+
+```{r,warning=FALSE,message=FALSE}
+ggplot(d,aes(surface,price)) + geom_point() + geom_smooth(method="lm") + facet_wrap(~canton) + theme(strip.text.x = element_text(size = 7),axis.text.x = element_text(size = 6))
+```
+
+We can clearly see that the relationship between surface and price is different in different cantons.
+
+## Rooms vs Price per canton
+
+```{r,message=FALSE,warning=FALSE}
+ggplot(d,aes(rooms,price)) + geom_point() + geom_smooth(method="lm") + facet_wrap(~canton) + theme(strip.text.x = element_text(size = 7),axis.text.x = element_text(size = 6)) + xlab("Number of rooms")
+```
+
+## Rooms vs surface per canton
+
+```{r,message=FALSE,warning=FALSE}
+ggplot(d,aes(rooms,surface)) + geom_point() + geom_smooth(method="lm") + facet_wrap(~canton) + theme(strip.text.x = element_text(size = 8),axis.text.x = element_text(size = 6)) + xlab("Number of rooms")
+```
+
+The relationship between number of rooms and surface is quite linear (as expected).
+
+# Modeling
+
+## Functions
+
+Functions to assess models:
+
+### Root mean square error
+
+```{r}
+rmse <- function(model){
+  residuals(model)^2 %>% mean() %>% sqrt()
+}
+```
+
+### Mean absolute error
+
+```{r}
+mae <- function(model){
+  residuals(model) %>% abs() %>% mean()
+}
+```
+
+### Fixed intercept
+
+Get the value of the fixed intercept
+
+```{r}
+fixed_intercept <- function(model){
+  coef(summary(model))[1]
+}
+```
+
+## Split Data
+
+We will train our model using 80% of the data and test prediction on the remaining 20%.
+
+```{r}
+set.seed(123)
+train_index <- createDataPartition(d$price,p=0.8,list = FALSE)
+train <- d[train_index,]
+test <- d[-train_index,]
+```
+
+## Imputation
+
+We will impute missing data using linear regression.
+
+Let's first create the linear regression models using the training data
+
+```{r}
+model_imputation_surface <- lm(surface ~ rooms,data=train)
+model_imputation_rooms <- lm(rooms ~ surface,data=train)
+```
+
+Let's replace missing values for surface in the training data by the predicted values
+
+```{r}
+train_surface_prediction <- predict(model_imputation_surface,select(train,rooms))
+train <- mutate(train, surface=ifelse(is.na(surface),train_surface_prediction,surface))
+```
+
+Let's replace missing values for surface in the test data by the predicted values
+
+```{r}
+test_surface_prediction <- predict(model_imputation_surface,select(test,rooms))
+test <- mutate(test, surface=ifelse(is.na(surface),test_surface_prediction,surface))
+```
+
+Let's replace missing values for the number of rooms in the training data by the predicted values
+
+```{r}
+train_rooms_prediction <- predict(model_imputation_rooms,select(train,surface))
+train <- mutate(train, rooms=ifelse(is.na(rooms),train_rooms_prediction,rooms))
+```
+
+Let's replace missing values for the number of rooms in the test data by the predicted values
+
+```{r}
+test_rooms_prediction <- predict(model_imputation_rooms,select(test,surface))
+test <- mutate(test, rooms=ifelse(is.na(rooms),test_rooms_prediction,rooms))
+```
+
+## Baseline
+
+We will set the mean for surface to 100 m2 and 4 rooms. We will also scale the variables for easier computations.
+
+```{r}
+sd_surface  <- sd(train$surface)
+sd_rooms <- sd(train$rooms)
+train <- mutate(train,surface=(surface-100)/sd_surface,rooms=(rooms-4)/sd_rooms)
+test <- mutate(test,surface=(surface-100)/sd_surface,rooms=(rooms-4)/sd_rooms)
+```
+
+## Mixed Models
+
+Different models (linear and mixed) will be trained.
+
+```{r}
+model0 <- lm(price ~ surface + rooms,data = train)
+model1 <- lmer(price ~ surface + rooms + (1|canton),data = train)
+model2 <- lmer(price ~ surface + rooms + (1|canton) + (1|location),data = train)
+model3 <- lmer(price ~ surface + rooms + (1|location) ,data = train)
+model4 <- lmer(price ~ surface + rooms + (rooms|location) ,data = train)
+model5 <- lmer(price ~ surface + rooms + (surface|location) ,data = train)
+model6 <- lmer(price ~ surface + rooms + (surface|location) + (0+rooms|location),data = train)
+model7 <- lmer(price ~ surface + rooms + (surface + rooms|location),data = train)
+model8 <- lmer(price ~ surface + rooms + (surface|location) + (1|canton),data = train)
+```
+
+Model 7 fails to converge and therefore will not be our final model.
+
+## Mixed model results
+
+```{r}
+models <- list(model0,model1,model2,model3,model4,model5,model6,model7,model8)
+model_calls <- c(model0$call,model1@call,model2@call,model3@call,model4@call,model5@call,model6@call,model7@call,model8@call) %>% as.character()
+
+models_df <- tibble(name=paste0("model",0:8),
+                    calls=model_calls,
+                    rmse=map_dbl(models,rmse),
+                    mae=map_dbl(models,mae),
+                    fixed_intercepts=map_dbl(models,fixed_intercept))
+```
+
+
+```{r}
+lausanne <- tibble(surface=0,rooms=0,location="lausanne",canton="Vaud",view=FALSE,new=FALSE)
+geneve <- tibble(surface=0,rooms=0,location="genève",canton="Genève",view=FALSE,new=FALSE)
+yverdon <- tibble(surface=0,rooms=0,location="yverdon-les-bains",canton="Vaud",view=FALSE,new=FALSE)
+chavorney <- tibble(surface=0,rooms=0,location="chavornay",canton="Vaud",view=FALSE,new=FALSE)
+```
+
+```{r}
+models_df <- mutate(models_df,predicted_price_Lausanne=map_dbl(models,predict,lausanne),
+                              predicted_price_geneve=map_dbl(models,predict,geneve),
+                              predicted_price_yverdon=map_dbl(models,predict,yverdon),
+                              predicted_price_chavornay=map_dbl(models,predict,chavorney)) %>% arrange(rmse)
+```
+
+```{r}
+DT::datatable(models_df) %>% DT::formatRound(.,c('rmse','mae','fixed_intercepts','predicted_price_Lausanne','predicted_price_geneve','predicted_price_yverdon','predicted_price_chavornay'), digits=1) 
+```
+
+## Machine Learning
+
+Now that we've used linear regression and mixed models, we will compare them to different ML algorithms.
+
+```{r}
+y_train <- train$price
+y_test <- test$price
+```
+
+Select variables to use
+
+```{r}
+x_train <- select(train,price,surface,rooms,location,canton)
+x_test <- select(test,price,surface,rooms,location,canton)
+```
+
+Set categorical variables to factors
+
+```{r,warning=FALSE}
+dummies_model <- dummyVars(price~ ., data=x_train)
+x_train <- predict(dummies_model, newdata = x_train) %>% as.data.frame()
+x_test <- predict(dummies_model, newdata = x_test) %>% as.data.frame()
+```
+
+Remove near zero variables.
+
+```{r,cache=T}
+nzv <- nearZeroVar(x_train)
+x_train <- x_train[-nzv]
+x_test <-  x_test[-nzv]
+```
+
+Create 10 folds for 10-fold cross-validation
+
+```{r}
+index_train <- createFolds(y_train,k=10,list=TRUE,returnTrain = TRUE)
+```
+
+Use three cores for the ML modeling
+
+```{r}
+cl <- makeCluster(3,type= "SOCK")
+registerDoSNOW(cl)
+```
+
+Sets cross-validation parameters
+
+```{r}
+trainControl <- trainControl(method="cv", index=index_train,number = 10)
+```
+
+## ML Modeling
+
+We will test linear regression, KNN, random forest, xgboost and ridge/lasso regression.
+
+```{r,message=FALSE,cache=T}
+model_lm = train(y=y_train, x=x_train, 
+                  method='lm', 
+                  trControl = trainControl)
+
+model_knn = train(y=y_train, x=x_train, 
+                  method='knn',
+                  trControl = trainControl)
+
+model_ranger = train(y=y_train, x=x_train,
+                     method='ranger',
+                     trControl = trainControl)
+
+model_xgboost = train(y=y_train, x=x_train, 
+                      method='xgbTree',
+                      trControl = trainControl)
+
+model_glmnet = train(y=y_train, x=x_train, 
+                      method='glmnet',
+                      trControl = trainControl,
+                      tuneGrid = expand.grid(alpha = 0:1,lambda = seq(0.001,0.1,by = 0.001)))
+```
+
+## Compare ML models
+
+Let's check how the different models compare using results from the cross-validation.
+
+```{r,eval=TRUE}
+models_compare <- resamples(list(Lm=model_lm, 
+                                 Ranger=model_ranger,
+                                 knn=model_knn,
+                                 Xgboost=model_xgboost,
+                                 glmnet=model_glmnet))
+summary(models_compare)
+```
+
+## ML Plot
+
+```{r}
+scales <- list(x=list(relation="free"), y=list(relation="free"))
+bwplot(models_compare, scales=scales)
+```
+
+Machine learning models are all much worse than mixed model for this dataset. We will use a mixed model for housing prediction.
+
+```{r}
+stopCluster(cl)
+```
+
+# Test Set
+
+```{r}
+test$model0 <- predict(model0,test) %>% as.numeric()
+test$model1 <- predict(model1,test,allow.new.level=TRUE) %>% as.numeric()
+test$model2 <- predict(model2,test,allow.new.level=TRUE) %>% as.numeric()
+test$model3 <- predict(model3,test,allow.new.level=TRUE) %>% as.numeric()
+test$model4 <- predict(model4,test,allow.new.level=TRUE) %>% as.numeric()
+test$model5 <- predict(model5,test,allow.new.level=TRUE) %>% as.numeric()
+test$model6 <- predict(model6,test,allow.new.level=TRUE) %>% as.numeric()
+test$model7 <- predict(model7,test,allow.new.level=TRUE) %>% as.numeric()
+test$model8 <- predict(model8,test,allow.new.level=TRUE) %>% as.numeric()
+```
+
+```{r}
+test <- gather(test,model,prediction,model0:model8)
+```
+
+```{r}
+test <- mutate(test, error=price-prediction)
+```
+
+```{r}
+test_results <- test %>% group_by(model) %>% summarise(rmse=error^2 %>% mean() %>% sqrt(),
+                                       mae=error %>% abs() %>% mean()) %>% arrange(rmse)
+DT::datatable(test_results) %>% DT::formatRound(.,c('rmse','mae'), digits=1) 
+```
+
+We will keep model 8 due to great performance.
+
+lmer(formula = price ~ surface + rooms + (surface | location) + (1 | canton), data = train)
+
+## Save model
+
+```{r}
+saveRDS(model8, "../Data/processed/mixed_model8.rds")
+saveRDS(sd_surface,"../Data/processed/mixed_model_sd_surface.rds")
+saveRDS(sd_rooms,"../Data/processed/mixed_model_sd_rooms.rds")
+```
+
+## Save locations
+
+```{r}
+select(d,location,canton) %>% unique() %>% saveRDS("../Data/processed/location_canton_anibis.rds")
+```
+
+## Session info
+
+```{r}
+sessionInfo()
+```
