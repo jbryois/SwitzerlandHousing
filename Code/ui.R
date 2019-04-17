@@ -29,7 +29,7 @@ ui <- fluidPage(
       p("Surface and number of rooms are modelled as fixed effects, while a random slope and intercepts are fit for each location and a random intercept for each canton"),
       p("The model achieves a mean absolute error of 225 CHF (root mean square of 340 CHF) on a test set (20% of all listings)"),
       p("Code is available on my",a("github page",href="https://github.com/jbryois")),
-      p("Statistical Modeling is availble",a("here",href="https://github.com/jbryois"))
+      p("Statistical Modeling is availble",a("here",href="https://github.com/jbryois/SwitzerlandHousing/blob/master/Code/Anibis_immo_analysis.md"))
     ),
     
     # Main panel for displaying outputs ----
