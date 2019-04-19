@@ -294,7 +294,6 @@ div.tocify {
 </div>
 
 
-<p>To do: - change data table to kable - commit github</p>
 <div id="load" class="section level1">
 <h1>Load</h1>
 <div id="libraries" class="section level2">
@@ -545,93 +544,19 @@ models_df &lt;- tibble(name=paste0(&quot;model&quot;,0:8),
 <p>Test prediction for the city of Lausanne.</p>
 <pre class="r"><code>lausanne &lt;- tibble(surface=0,rooms=0,location=&quot;lausanne&quot;,canton=&quot;Vaud&quot;,view=FALSE,new=FALSE)</code></pre>
 <pre class="r"><code>models_df &lt;- mutate(models_df,`predicted price Lausanne`=map_dbl(models,predict,lausanne) %&gt;% round()) %&gt;% arrange(rmse)</code></pre>
-<pre class="r"><code>kable(models_df) </code></pre>
-<table>
-<thead>
-<tr class="header">
-<th align="center">name</th>
-<th align="center">calls</th>
-<th align="center">rmse</th>
-<th align="center">mae</th>
-<th align="center">fixed_intercepts</th>
-<th align="center">predicted price Lausanne</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="center">model7</td>
-<td align="center">lmer(formula = price ~ surface + rooms + (surface + rooms | location), data = train)</td>
-<td align="center">302</td>
-<td align="center">202</td>
-<td align="center">1790</td>
-<td align="center">2610</td>
-</tr>
-<tr class="even">
-<td align="center">model6</td>
-<td align="center">lmer(formula = price ~ surface + rooms + (surface | location) + (0 + rooms | location), data = train)</td>
-<td align="center">305</td>
-<td align="center">205</td>
-<td align="center">1789</td>
-<td align="center">2622</td>
-</tr>
-<tr class="odd">
-<td align="center">model5</td>
-<td align="center">lmer(formula = price ~ surface + rooms + (surface | location), data = train)</td>
-<td align="center">307</td>
-<td align="center">206</td>
-<td align="center">1789</td>
-<td align="center">2633</td>
-</tr>
-<tr class="even">
-<td align="center">model8</td>
-<td align="center">lmer(formula = price ~ surface + rooms + (surface | location) + (1 | canton), data = train)</td>
-<td align="center">307</td>
-<td align="center">206</td>
-<td align="center">1795</td>
-<td align="center">2632</td>
-</tr>
-<tr class="odd">
-<td align="center">model4</td>
-<td align="center">lmer(formula = price ~ surface + rooms + (rooms | location), data = train)</td>
-<td align="center">316</td>
-<td align="center">212</td>
-<td align="center">1792</td>
-<td align="center">2586</td>
-</tr>
-<tr class="even">
-<td align="center">model3</td>
-<td align="center">lmer(formula = price ~ surface + rooms + (1 | location), data = train)</td>
-<td align="center">338</td>
-<td align="center">227</td>
-<td align="center">1807</td>
-<td align="center">2385</td>
-</tr>
-<tr class="odd">
-<td align="center">model2</td>
-<td align="center">lmer(formula = price ~ surface + rooms + (1 | canton) + (1 | location), data = train)</td>
-<td align="center">340</td>
-<td align="center">229</td>
-<td align="center">1837</td>
-<td align="center">2383</td>
-</tr>
-<tr class="even">
-<td align="center">model1</td>
-<td align="center">lmer(formula = price ~ surface + rooms + (1 | canton), data = train)</td>
-<td align="center">416</td>
-<td align="center">283</td>
-<td align="center">1900</td>
-<td align="center">2119</td>
-</tr>
-<tr class="odd">
-<td align="center">model0</td>
-<td align="center">lm(formula = price ~ surface + rooms, data = train)</td>
-<td align="center">492</td>
-<td align="center">334</td>
-<td align="center">1876</td>
-<td align="center">1876</td>
-</tr>
-</tbody>
-</table>
+<pre class="r"><code>models_df</code></pre>
+<pre><code>## # A tibble: 9 x 6
+##   name   calls               rmse   mae fixed_intercepts `predicted price …
+##   &lt;chr&gt;  &lt;chr&gt;              &lt;dbl&gt; &lt;dbl&gt;            &lt;dbl&gt;              &lt;dbl&gt;
+## 1 model7 lmer(formula = pr…   302   202             1790               2610
+## 2 model6 lmer(formula = pr…   305   205             1789               2622
+## 3 model5 lmer(formula = pr…   307   206             1789               2633
+## 4 model8 lmer(formula = pr…   307   206             1795               2632
+## 5 model4 lmer(formula = pr…   316   212             1792               2586
+## 6 model3 lmer(formula = pr…   338   227             1807               2385
+## 7 model2 lmer(formula = pr…   340   229             1837               2383
+## 8 model1 lmer(formula = pr…   416   283             1900               2119
+## 9 model0 lm(formula = pric…   492   334             1876               1876</code></pre>
 </div>
 <div id="machine-learning" class="section level2">
 <h2>Machine Learning</h2>
@@ -745,63 +670,6 @@ test$model8 &lt;- predict(model8,test,allow.new.level=TRUE) %&gt;% as.numeric()<
 <pre class="r"><code>test &lt;- mutate(test, error=price-prediction)</code></pre>
 <pre class="r"><code>test_results &lt;- test %&gt;% group_by(model) %&gt;% summarise(rmse=error^2 %&gt;% mean() %&gt;% sqrt() %&gt;% round(),mae=error %&gt;% abs() %&gt;% mean() %&gt;% round()) %&gt;% 
   arrange(rmse)</code></pre>
-<pre class="r"><code>kable(test_results)</code></pre>
-<table>
-<thead>
-<tr class="header">
-<th align="center">model</th>
-<th align="center">rmse</th>
-<th align="center">mae</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="center">model8</td>
-<td align="center">340</td>
-<td align="center">225</td>
-</tr>
-<tr class="even">
-<td align="center">model7</td>
-<td align="center">341</td>
-<td align="center">226</td>
-</tr>
-<tr class="odd">
-<td align="center">model5</td>
-<td align="center">342</td>
-<td align="center">227</td>
-</tr>
-<tr class="even">
-<td align="center">model6</td>
-<td align="center">342</td>
-<td align="center">227</td>
-</tr>
-<tr class="odd">
-<td align="center">model4</td>
-<td align="center">348</td>
-<td align="center">232</td>
-</tr>
-<tr class="even">
-<td align="center">model2</td>
-<td align="center">360</td>
-<td align="center">240</td>
-</tr>
-<tr class="odd">
-<td align="center">model3</td>
-<td align="center">363</td>
-<td align="center">242</td>
-</tr>
-<tr class="even">
-<td align="center">model1</td>
-<td align="center">416</td>
-<td align="center">278</td>
-</tr>
-<tr class="odd">
-<td align="center">model0</td>
-<td align="center">491</td>
-<td align="center">330</td>
-</tr>
-</tbody>
-</table>
 <pre class="r"><code>test_results</code></pre>
 <pre><code>## # A tibble: 9 x 3
 ##   model   rmse   mae

@@ -7,10 +7,6 @@ output:
     keep_md: true
 ---
 
-To do:
-- change data table to kable
-- commit github
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(cache.lazy=FALSE)
@@ -331,8 +327,12 @@ models_df <- mutate(models_df,`predicted price Lausanne`=map_dbl(models,predict,
 DT::datatable(models_df)
 ```
 
-```{r}
+```{r,include=FALSE}
 kable(models_df) 
+```
+
+```{r}
+models_df
 ```
 
 ## Machine Learning
@@ -470,7 +470,7 @@ test_results <- test %>% group_by(model) %>% summarise(rmse=error^2 %>% mean() %
 DT::datatable(test_results) %>% DT::formatRound(.,c('rmse','mae'), digits=1) 
 ```
 
-```{r}
+```{r,include=FALSE}
 kable(test_results)
 ```
 

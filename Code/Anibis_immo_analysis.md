@@ -7,10 +7,6 @@ output:
     keep_md: true
 ---
 
-To do:
-- change data table to kable
-- commit github
-
 
 
 # Load
@@ -460,23 +456,26 @@ models_df <- mutate(models_df,`predicted price Lausanne`=map_dbl(models,predict,
 
 
 
+
+
 ```r
-kable(models_df) 
+models_df
 ```
 
-
-
-  name                                                     calls                                                    rmse    mae    fixed_intercepts    predicted price Lausanne 
---------  -------------------------------------------------------------------------------------------------------  ------  -----  ------------------  --------------------------
- model7            lmer(formula = price ~ surface + rooms + (surface + rooms | location), data = train)             302     202          1790                    2610           
- model6    lmer(formula = price ~ surface + rooms + (surface | location) + (0 + rooms | location), data = train)    305     205          1789                    2622           
- model5                lmer(formula = price ~ surface + rooms + (surface | location), data = train)                 307     206          1789                    2633           
- model8         lmer(formula = price ~ surface + rooms + (surface | location) + (1 | canton), data = train)         307     206          1795                    2632           
- model4                 lmer(formula = price ~ surface + rooms + (rooms | location), data = train)                  316     212          1792                    2586           
- model3                   lmer(formula = price ~ surface + rooms + (1 | location), data = train)                    338     227          1807                    2385           
- model2            lmer(formula = price ~ surface + rooms + (1 | canton) + (1 | location), data = train)            340     229          1837                    2383           
- model1                    lmer(formula = price ~ surface + rooms + (1 | canton), data = train)                     416     283          1900                    2119           
- model0                             lm(formula = price ~ surface + rooms, data = train)                             492     334          1876                    1876           
+```
+## # A tibble: 9 x 6
+##   name   calls               rmse   mae fixed_intercepts `predicted price …
+##   <chr>  <chr>              <dbl> <dbl>            <dbl>              <dbl>
+## 1 model7 lmer(formula = pr…   302   202             1790               2610
+## 2 model6 lmer(formula = pr…   305   205             1789               2622
+## 3 model5 lmer(formula = pr…   307   206             1789               2633
+## 4 model8 lmer(formula = pr…   307   206             1795               2632
+## 5 model4 lmer(formula = pr…   316   212             1792               2586
+## 6 model3 lmer(formula = pr…   338   227             1807               2385
+## 7 model2 lmer(formula = pr…   340   229             1837               2383
+## 8 model1 lmer(formula = pr…   416   283             1900               2119
+## 9 model0 lm(formula = pric…   492   334             1876               1876
+```
 
 ## Machine Learning
 
@@ -619,7 +618,7 @@ scales <- list(x=list(relation="free"), y=list(relation="free"))
 bwplot(models_compare, scales=scales)
 ```
 
-![](Anibis_immo_analysis_files/figure-html/unnamed-chunk-49-1.png)<!-- -->
+![](Anibis_immo_analysis_files/figure-html/unnamed-chunk-50-1.png)<!-- -->
 
 Machine learning models are all much worse than mixed model for this dataset. We will use a mixed model for housing prediction.
 
@@ -662,23 +661,6 @@ test_results <- test %>% group_by(model) %>% summarise(rmse=error^2 %>% mean() %
 
 
 
-```r
-kable(test_results)
-```
-
-
-
- model     rmse    mae 
---------  ------  -----
- model8    340     225 
- model7    341     226 
- model5    342     227 
- model6    342     227 
- model4    348     232 
- model2    360     240 
- model3    363     242 
- model1    416     278 
- model0    491     330 
 
 
 ```r
