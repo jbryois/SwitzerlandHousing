@@ -680,6 +680,26 @@ kable(test_results)
  model1    416     278 
  model0    491     330 
 
+
+```r
+test_results
+```
+
+```
+## # A tibble: 9 x 3
+##   model   rmse   mae
+##   <chr>  <dbl> <dbl>
+## 1 model8   340   225
+## 2 model7   341   226
+## 3 model5   342   227
+## 4 model6   342   227
+## 5 model4   348   232
+## 6 model2   360   240
+## 7 model3   363   242
+## 8 model1   416   278
+## 9 model0   491   330
+```
+
 We will keep model 8 due to great performance.
 
 lmer(formula = price ~ surface + rooms + (surface | location) + (1 | canton), data = train)

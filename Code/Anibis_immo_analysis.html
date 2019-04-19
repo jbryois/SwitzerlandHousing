@@ -802,6 +802,19 @@ test$model8 &lt;- predict(model8,test,allow.new.level=TRUE) %&gt;% as.numeric()<
 </tr>
 </tbody>
 </table>
+<pre class="r"><code>test_results</code></pre>
+<pre><code>## # A tibble: 9 x 3
+##   model   rmse   mae
+##   &lt;chr&gt;  &lt;dbl&gt; &lt;dbl&gt;
+## 1 model8   340   225
+## 2 model7   341   226
+## 3 model5   342   227
+## 4 model6   342   227
+## 5 model4   348   232
+## 6 model2   360   240
+## 7 model3   363   242
+## 8 model1   416   278
+## 9 model0   491   330</code></pre>
 <p>We will keep model 8 due to great performance.</p>
 <p>lmer(formula = price ~ surface + rooms + (surface | location) + (1 | canton), data = train)</p>
 <div id="save-model" class="section level2">

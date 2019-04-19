@@ -474,6 +474,10 @@ DT::datatable(test_results) %>% DT::formatRound(.,c('rmse','mae'), digits=1)
 kable(test_results)
 ```
 
+```{r}
+test_results
+```
+
 We will keep model 8 due to great performance.
 
 lmer(formula = price ~ surface + rooms + (surface | location) + (1 | canton), data = train)
