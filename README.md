@@ -1,6 +1,6 @@
 # Prediction of rent prices in Switzerland
 
-This projects aims to predict monthly rent prices in Switzerland based on data from the anibis.ch website.
+This projects aims to predict monthly rent prices in Switzerland based on data from the [anibis.ch](https://www.anibis.ch/fr/immobilier-immobilier-locations--410/advertlist.aspx) website.
 
 The structure of the project is the following:
 
