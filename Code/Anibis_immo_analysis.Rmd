@@ -7,6 +7,10 @@ output:
     keep_md: true
 ---
 
+To do:
+- change data table to kable
+- commit github
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 knitr::opts_chunk$set(cache.lazy=FALSE)
@@ -298,7 +302,7 @@ model7 <- lmer(price ~ surface + rooms + (surface + rooms|location),data = train
 model8 <- lmer(price ~ surface + rooms + (surface|location) + (1|canton),data = train)
 ```
 
-Model 7 fails to converge and therefore will not be our final model.
+Model 6 & 7 fail to converge and therefore will not be our final models.
 
 ## Mixed model results
 
@@ -308,28 +312,27 @@ model_calls <- c(model0$call,model1@call,model2@call,model3@call,model4@call,mod
 
 models_df <- tibble(name=paste0("model",0:8),
                     calls=model_calls,
-                    rmse=map_dbl(models,rmse),
-                    mae=map_dbl(models,mae),
-                    fixed_intercepts=map_dbl(models,fixed_intercept))
+                    rmse=map_dbl(models,rmse) %>% round(),
+                    mae=map_dbl(models,mae) %>% round(),
+                    fixed_intercepts=map_dbl(models,fixed_intercept) %>% round())
 ```
 
+Test prediction for the city of Lausanne.
 
 ```{r}
 lausanne <- tibble(surface=0,rooms=0,location="lausanne",canton="Vaud",view=FALSE,new=FALSE)
-geneve <- tibble(surface=0,rooms=0,location="genève",canton="Genève",view=FALSE,new=FALSE)
-yverdon <- tibble(surface=0,rooms=0,location="yverdon-les-bains",canton="Vaud",view=FALSE,new=FALSE)
-chavorney <- tibble(surface=0,rooms=0,location="chavornay",canton="Vaud",view=FALSE,new=FALSE)
 ```
 
 ```{r}
-models_df <- mutate(models_df,predicted_price_Lausanne=map_dbl(models,predict,lausanne),
-                              predicted_price_geneve=map_dbl(models,predict,geneve),
-                              predicted_price_yverdon=map_dbl(models,predict,yverdon),
-                              predicted_price_chavornay=map_dbl(models,predict,chavorney)) %>% arrange(rmse)
+models_df <- mutate(models_df,`predicted price Lausanne`=map_dbl(models,predict,lausanne) %>% round()) %>% arrange(rmse)
+```
+
+```{r,include=FALSE}
+DT::datatable(models_df)
 ```
 
 ```{r}
-DT::datatable(models_df) %>% DT::formatRound(.,c('rmse','mae','fixed_intercepts','predicted_price_Lausanne','predicted_price_geneve','predicted_price_yverdon','predicted_price_chavornay'), digits=1) 
+kable(models_df) 
 ```
 
 ## Machine Learning
@@ -459,9 +462,16 @@ test <- mutate(test, error=price-prediction)
 ```
 
 ```{r}
-test_results <- test %>% group_by(model) %>% summarise(rmse=error^2 %>% mean() %>% sqrt(),
-                                       mae=error %>% abs() %>% mean()) %>% arrange(rmse)
+test_results <- test %>% group_by(model) %>% summarise(rmse=error^2 %>% mean() %>% sqrt() %>% round(),mae=error %>% abs() %>% mean() %>% round()) %>% 
+  arrange(rmse)
+```
+
+```{r,include=FALSE}
 DT::datatable(test_results) %>% DT::formatRound(.,c('rmse','mae'), digits=1) 
+```
+
+```{r}
+kable(test_results)
 ```
 
 We will keep model 8 due to great performance.

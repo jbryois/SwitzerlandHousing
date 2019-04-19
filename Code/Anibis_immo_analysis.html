@@ -294,6 +294,7 @@ div.tocify {
 </div>
 
 
+<p>To do: - change data table to kable - commit github</p>
 <div id="load" class="section level1">
 <h1>Load</h1>
 <div id="libraries" class="section level2">
@@ -316,7 +317,7 @@ theme_set(theme_light())</code></pre>
 ##  n obs: 53007 
 ##  n variables: 8 
 ## 
-## ── Variable type:character ─────────────────────────────────────────────────────────────────────────────────────────
+## ── Variable type:character ────────────────────────────────────────────────────────────────────────────────────────
 ##  variable missing complete     n min max empty n_unique
 ##    canton       0    53007 53007   3  25     0       29
 ##      date       0    53007 53007  10  10     0      881
@@ -324,7 +325,7 @@ theme_set(theme_light())</code></pre>
 ##    object       2    53005 53007   6  18     0        8
 ##     title       2    53005 53007   1  60     0    45475
 ## 
-## ── Variable type:numeric ───────────────────────────────────────────────────────────────────────────────────────────
+## ── Variable type:numeric ──────────────────────────────────────────────────────────────────────────────────────────
 ##  variable missing complete     n    mean        sd  p0   p25    p50    p75
 ##     price    7305    45702 53007 7248.23 817005.67 0   980   1480   1900  
 ##     rooms   12965    40042 53007    3.68     32.7  0.5   2.5    3.5    4.5
@@ -529,7 +530,7 @@ model6 &lt;- lmer(price ~ surface + rooms + (surface|location) + (0+rooms|locati
 ## control$checkConv, : Model failed to converge with max|grad| = 0.00432499
 ## (tol = 0.002, component 1)</code></pre>
 <pre class="r"><code>model8 &lt;- lmer(price ~ surface + rooms + (surface|location) + (1|canton),data = train)</code></pre>
-<p>Model 7 fails to converge and therefore will not be our final model.</p>
+<p>Model 6 &amp; 7 fail to converge and therefore will not be our final models.</p>
 </div>
 <div id="mixed-model-results" class="section level2">
 <h2>Mixed model results</h2>
@@ -538,20 +539,99 @@ model_calls &lt;- c(model0$call,model1@call,model2@call,model3@call,model4@call,
 
 models_df &lt;- tibble(name=paste0(&quot;model&quot;,0:8),
                     calls=model_calls,
-                    rmse=map_dbl(models,rmse),
-                    mae=map_dbl(models,mae),
-                    fixed_intercepts=map_dbl(models,fixed_intercept))</code></pre>
-<pre class="r"><code>lausanne &lt;- tibble(surface=0,rooms=0,location=&quot;lausanne&quot;,canton=&quot;Vaud&quot;,view=FALSE,new=FALSE)
-geneve &lt;- tibble(surface=0,rooms=0,location=&quot;genève&quot;,canton=&quot;Genève&quot;,view=FALSE,new=FALSE)
-yverdon &lt;- tibble(surface=0,rooms=0,location=&quot;yverdon-les-bains&quot;,canton=&quot;Vaud&quot;,view=FALSE,new=FALSE)
-chavorney &lt;- tibble(surface=0,rooms=0,location=&quot;chavornay&quot;,canton=&quot;Vaud&quot;,view=FALSE,new=FALSE)</code></pre>
-<pre class="r"><code>models_df &lt;- mutate(models_df,predicted_price_Lausanne=map_dbl(models,predict,lausanne),
-                              predicted_price_geneve=map_dbl(models,predict,geneve),
-                              predicted_price_yverdon=map_dbl(models,predict,yverdon),
-                              predicted_price_chavornay=map_dbl(models,predict,chavorney)) %&gt;% arrange(rmse)</code></pre>
-<pre class="r"><code>DT::datatable(models_df) %&gt;% DT::formatRound(.,c('rmse','mae','fixed_intercepts','predicted_price_Lausanne','predicted_price_geneve','predicted_price_yverdon','predicted_price_chavornay'), digits=1) </code></pre>
-<div id="htmlwidget-f67c44d142dd5a0397f1" style="width:100%;height:auto;" class="datatables html-widget"></div>
-<script type="application/json" data-for="htmlwidget-f67c44d142dd5a0397f1">{"x":{"filter":"none","data":[["1","2","3","4","5","6","7","8","9"],["model7","model6","model5","model8","model4","model3","model2","model1","model0"],["lmer(formula = price ~ surface + rooms + (surface + rooms | location), data = train)","lmer(formula = price ~ surface + rooms + (surface | location) + (0 + rooms | location), data = train)","lmer(formula = price ~ surface + rooms + (surface | location), data = train)","lmer(formula = price ~ surface + rooms + (surface | location) + (1 | canton), data = train)","lmer(formula = price ~ surface + rooms + (rooms | location), data = train)","lmer(formula = price ~ surface + rooms + (1 | location), data = train)","lmer(formula = price ~ surface + rooms + (1 | canton) + (1 | location), data = train)","lmer(formula = price ~ surface + rooms + (1 | canton), data = train)","lm(formula = price ~ surface + rooms, data = train)"],[302.108302249863,305.2185181044,306.57203583696,307.354896375049,316.223624503719,337.622379745891,340.299610692134,415.663688910152,491.519778541998],[202.417511982234,204.670368582548,205.687550243555,206.335949939933,212.10635421206,227.308121306169,229.083379253273,282.692084118152,334.449509789587],[1789.96591004569,1788.91046925898,1788.59206280056,1795.30586746145,1791.90000273201,1807.33446290258,1836.59443656462,1900.26163092568,1875.94681000972],[2610.2179060547,2622.11996051702,2632.87640248118,2631.69793257674,2586.31954379993,2385.19431250759,2382.66623406895,2119.46021793434,1875.94681000972],[3193.7179640335,3205.91457890424,3213.22674480508,3212.94873123264,3092.34760964874,2882.22480845671,2882.59951364058,2782.27555392075,1875.94681000972],[1970.42839840378,1951.72054729466,1939.48804592035,1937.62476793776,1988.17512904805,1952.60836094856,1953.43929375772,2119.46021793434,1875.94681000972],[2150.46777458195,2146.88534121465,2148.11901214976,2137.63260999987,2137.95676320928,2122.07708858464,2127.42444700718,2119.46021793434,1875.94681000972]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>name<\/th>\n      <th>calls<\/th>\n      <th>rmse<\/th>\n      <th>mae<\/th>\n      <th>fixed_intercepts<\/th>\n      <th>predicted_price_Lausanne<\/th>\n      <th>predicted_price_geneve<\/th>\n      <th>predicted_price_yverdon<\/th>\n      <th>predicted_price_chavornay<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":[3,4,5,6,7,8,9]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data) {\nDTWidget.formatRound(this, row, data, 3, 1, 3, ',', '.');\nDTWidget.formatRound(this, row, data, 4, 1, 3, ',', '.');\nDTWidget.formatRound(this, row, data, 5, 1, 3, ',', '.');\nDTWidget.formatRound(this, row, data, 6, 1, 3, ',', '.');\nDTWidget.formatRound(this, row, data, 7, 1, 3, ',', '.');\nDTWidget.formatRound(this, row, data, 8, 1, 3, ',', '.');\nDTWidget.formatRound(this, row, data, 9, 1, 3, ',', '.');\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script>
+                    rmse=map_dbl(models,rmse) %&gt;% round(),
+                    mae=map_dbl(models,mae) %&gt;% round(),
+                    fixed_intercepts=map_dbl(models,fixed_intercept) %&gt;% round())</code></pre>
+<p>Test prediction for the city of Lausanne.</p>
+<pre class="r"><code>lausanne &lt;- tibble(surface=0,rooms=0,location=&quot;lausanne&quot;,canton=&quot;Vaud&quot;,view=FALSE,new=FALSE)</code></pre>
+<pre class="r"><code>models_df &lt;- mutate(models_df,`predicted price Lausanne`=map_dbl(models,predict,lausanne) %&gt;% round()) %&gt;% arrange(rmse)</code></pre>
+<pre class="r"><code>kable(models_df) </code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="center">name</th>
+<th align="center">calls</th>
+<th align="center">rmse</th>
+<th align="center">mae</th>
+<th align="center">fixed_intercepts</th>
+<th align="center">predicted price Lausanne</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="center">model7</td>
+<td align="center">lmer(formula = price ~ surface + rooms + (surface + rooms | location), data = train)</td>
+<td align="center">302</td>
+<td align="center">202</td>
+<td align="center">1790</td>
+<td align="center">2610</td>
+</tr>
+<tr class="even">
+<td align="center">model6</td>
+<td align="center">lmer(formula = price ~ surface + rooms + (surface | location) + (0 + rooms | location), data = train)</td>
+<td align="center">305</td>
+<td align="center">205</td>
+<td align="center">1789</td>
+<td align="center">2622</td>
+</tr>
+<tr class="odd">
+<td align="center">model5</td>
+<td align="center">lmer(formula = price ~ surface + rooms + (surface | location), data = train)</td>
+<td align="center">307</td>
+<td align="center">206</td>
+<td align="center">1789</td>
+<td align="center">2633</td>
+</tr>
+<tr class="even">
+<td align="center">model8</td>
+<td align="center">lmer(formula = price ~ surface + rooms + (surface | location) + (1 | canton), data = train)</td>
+<td align="center">307</td>
+<td align="center">206</td>
+<td align="center">1795</td>
+<td align="center">2632</td>
+</tr>
+<tr class="odd">
+<td align="center">model4</td>
+<td align="center">lmer(formula = price ~ surface + rooms + (rooms | location), data = train)</td>
+<td align="center">316</td>
+<td align="center">212</td>
+<td align="center">1792</td>
+<td align="center">2586</td>
+</tr>
+<tr class="even">
+<td align="center">model3</td>
+<td align="center">lmer(formula = price ~ surface + rooms + (1 | location), data = train)</td>
+<td align="center">338</td>
+<td align="center">227</td>
+<td align="center">1807</td>
+<td align="center">2385</td>
+</tr>
+<tr class="odd">
+<td align="center">model2</td>
+<td align="center">lmer(formula = price ~ surface + rooms + (1 | canton) + (1 | location), data = train)</td>
+<td align="center">340</td>
+<td align="center">229</td>
+<td align="center">1837</td>
+<td align="center">2383</td>
+</tr>
+<tr class="even">
+<td align="center">model1</td>
+<td align="center">lmer(formula = price ~ surface + rooms + (1 | canton), data = train)</td>
+<td align="center">416</td>
+<td align="center">283</td>
+<td align="center">1900</td>
+<td align="center">2119</td>
+</tr>
+<tr class="odd">
+<td align="center">model0</td>
+<td align="center">lm(formula = price ~ surface + rooms, data = train)</td>
+<td align="center">492</td>
+<td align="center">334</td>
+<td align="center">1876</td>
+<td align="center">1876</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div id="machine-learning" class="section level2">
 <h2>Machine Learning</h2>
@@ -663,11 +743,65 @@ test$model7 &lt;- predict(model7,test,allow.new.level=TRUE) %&gt;% as.numeric()
 test$model8 &lt;- predict(model8,test,allow.new.level=TRUE) %&gt;% as.numeric()</code></pre>
 <pre class="r"><code>test &lt;- gather(test,model,prediction,model0:model8)</code></pre>
 <pre class="r"><code>test &lt;- mutate(test, error=price-prediction)</code></pre>
-<pre class="r"><code>test_results &lt;- test %&gt;% group_by(model) %&gt;% summarise(rmse=error^2 %&gt;% mean() %&gt;% sqrt(),
-                                       mae=error %&gt;% abs() %&gt;% mean()) %&gt;% arrange(rmse)
-DT::datatable(test_results) %&gt;% DT::formatRound(.,c('rmse','mae'), digits=1) </code></pre>
-<div id="htmlwidget-3b372303cee64074a4eb" style="width:100%;height:auto;" class="datatables html-widget"></div>
-<script type="application/json" data-for="htmlwidget-3b372303cee64074a4eb">{"x":{"filter":"none","data":[["1","2","3","4","5","6","7","8","9"],["model8","model7","model6","model5","model4","model2","model3","model1","model0"],[339.601641117014,341.267337985999,341.734930887694,342.214596709392,347.690918580011,360.088588127904,362.853300516561,415.750436135,490.665483167521],[225.305284959526,226.265491377804,226.96003048927,227.342231458475,231.525629951359,240.118077275267,242.461686058713,277.736070714433,330.320215559833]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>model<\/th>\n      <th>rmse<\/th>\n      <th>mae<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":[2,3]},{"orderable":false,"targets":0}],"order":[],"autoWidth":false,"orderClasses":false,"rowCallback":"function(row, data) {\nDTWidget.formatRound(this, row, data, 2, 1, 3, ',', '.');\nDTWidget.formatRound(this, row, data, 3, 1, 3, ',', '.');\n}"}},"evals":["options.rowCallback"],"jsHooks":[]}</script>
+<pre class="r"><code>test_results &lt;- test %&gt;% group_by(model) %&gt;% summarise(rmse=error^2 %&gt;% mean() %&gt;% sqrt() %&gt;% round(),mae=error %&gt;% abs() %&gt;% mean() %&gt;% round()) %&gt;% 
+  arrange(rmse)</code></pre>
+<pre class="r"><code>kable(test_results)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="center">model</th>
+<th align="center">rmse</th>
+<th align="center">mae</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="center">model8</td>
+<td align="center">340</td>
+<td align="center">225</td>
+</tr>
+<tr class="even">
+<td align="center">model7</td>
+<td align="center">341</td>
+<td align="center">226</td>
+</tr>
+<tr class="odd">
+<td align="center">model5</td>
+<td align="center">342</td>
+<td align="center">227</td>
+</tr>
+<tr class="even">
+<td align="center">model6</td>
+<td align="center">342</td>
+<td align="center">227</td>
+</tr>
+<tr class="odd">
+<td align="center">model4</td>
+<td align="center">348</td>
+<td align="center">232</td>
+</tr>
+<tr class="even">
+<td align="center">model2</td>
+<td align="center">360</td>
+<td align="center">240</td>
+</tr>
+<tr class="odd">
+<td align="center">model3</td>
+<td align="center">363</td>
+<td align="center">242</td>
+</tr>
+<tr class="even">
+<td align="center">model1</td>
+<td align="center">416</td>
+<td align="center">278</td>
+</tr>
+<tr class="odd">
+<td align="center">model0</td>
+<td align="center">491</td>
+<td align="center">330</td>
+</tr>
+</tbody>
+</table>
 <p>We will keep model 8 due to great performance.</p>
 <p>lmer(formula = price ~ surface + rooms + (surface | location) + (1 | canton), data = train)</p>
 <div id="save-model" class="section level2">
@@ -713,25 +847,25 @@ saveRDS(sd_rooms,&quot;../Data/processed/mixed_model_sd_rooms.rds&quot;)</code><
 ## [16] glmnet_2.0-16      cli_1.0.1          rvest_0.3.2       
 ## [19] xml2_1.2.0         labeling_0.3       digest_0.6.18     
 ## [22] minqa_1.2.4        rmarkdown_1.11     pkgconfig_2.0.2   
-## [25] htmltools_0.3.6    htmlwidgets_1.3    rlang_0.3.1       
-## [28] readxl_1.2.0       rstudioapi_0.9.0   shiny_1.2.0       
-## [31] bindr_0.1.1        generics_0.0.2     jsonlite_1.6      
-## [34] crosstalk_1.0.0    ModelMetrics_1.2.2 magrittr_1.5      
-## [37] Rcpp_1.0.0         munsell_0.5.0      fansi_0.4.0       
-## [40] stringi_1.2.4      yaml_2.2.0         MASS_7.3-51.1     
-## [43] plyr_1.8.4         recipes_0.1.4      grid_3.5.1        
-## [46] promises_1.0.1     parallel_3.5.1     crayon_1.3.4      
-## [49] haven_2.0.0        splines_3.5.1      hms_0.4.2         
-## [52] knitr_1.21         pillar_1.3.1       ranger_0.11.1     
+## [25] htmltools_0.3.6    highr_0.7          htmlwidgets_1.3   
+## [28] rlang_0.3.1        readxl_1.2.0       rstudioapi_0.10   
+## [31] shiny_1.2.0        bindr_0.1.1        generics_0.0.2    
+## [34] jsonlite_1.6       crosstalk_1.0.0    ModelMetrics_1.2.2
+## [37] magrittr_1.5       Rcpp_1.0.0         munsell_0.5.0     
+## [40] fansi_0.4.0        stringi_1.2.4      yaml_2.2.0        
+## [43] MASS_7.3-51.1      plyr_1.8.4         recipes_0.1.4     
+## [46] grid_3.5.1         promises_1.0.1     parallel_3.5.1    
+## [49] crayon_1.3.4       haven_2.0.0        splines_3.5.1     
+## [52] hms_0.4.2          knitr_1.21         pillar_1.3.1      
 ## [55] boot_1.3-20        xgboost_0.81.0.1   reshape2_1.4.3    
 ## [58] codetools_0.2-16   stats4_3.5.1       glue_1.3.0        
 ## [61] evaluate_0.12      data.table_1.12.0  modelr_0.1.2      
 ## [64] nloptr_1.2.1       httpuv_1.4.5.1     cellranger_1.1.0  
 ## [67] gtable_0.2.0       assertthat_0.2.0   xfun_0.4          
 ## [70] gower_0.1.2        mime_0.6           prodlim_2018.04.18
-## [73] xtable_1.8-3       broom_0.5.1        e1071_1.7-0.1     
-## [76] later_0.7.5        class_7.3-15       survival_2.43-3   
-## [79] timeDate_3043.102  lava_1.6.4         ipred_0.9-8</code></pre>
+## [73] xtable_1.8-3       broom_0.5.1        later_0.7.5       
+## [76] class_7.3-15       survival_2.43-3    timeDate_3043.102 
+## [79] lava_1.6.4         ipred_0.9-8</code></pre>
 </div>
 </div>
 
