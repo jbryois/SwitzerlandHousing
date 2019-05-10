@@ -10,3 +10,4 @@ The structure of the project is the following:
 
 3) A [shiny app](https://jbryois.shinyapps.io/SwitzerlandHousingPred/) displays the predicted prices in Switzerland based on a linear mixed model.
 
+![](Data/img/shiny.png)
